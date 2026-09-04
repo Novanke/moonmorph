@@ -1,0 +1,13 @@
+{
+  "name": "account-v1-to-v2",
+  "from": "1",
+  "to": "2",
+  "operations": [
+    { "op": "test", "path": "/version", "value": 1 },
+    { "op": "replace", "path": "/version", "value": 2 },
+    { "op": "rename", "path": "/profile", "from": "display_name", "to": "name" },
+    { "op": "increment", "path": "/profile/quota", "delta": 5 },
+    { "op": "add", "path": "/roles/-", "value": "contributor" }
+  ]
+}
+

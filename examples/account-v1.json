@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "profile": {
+    "display_name": "Ada",
+    "quota": 10
+  },
+  "roles": ["reader"]
+}
+
