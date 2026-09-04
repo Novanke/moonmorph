@@ -1,0 +1,6 @@
+import {
+  "moonmorph/moonmorph",
+  "moonbitlang/core/env",
+}
+
+pkgtype(kind: "executable")
