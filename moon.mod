@@ -1,10 +1,10 @@
-name = "moonmorph/moonmorph"
+name = "Novanke/moonmorph"
 
 version = "0.1.0"
 
 readme = "README.md"
 
-repository = ""
+repository = "https://github.com/Novanke/moonmorph"
 
 license = "Apache-2.0"
 
