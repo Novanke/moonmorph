@@ -1,5 +1,5 @@
 import {
-  "moonmorph/moonmorph",
+  "Novanke/moonmorph",
   "moonbitlang/core/env",
 }
 
