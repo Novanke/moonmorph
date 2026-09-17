@@ -104,6 +104,37 @@ pub fn Migration::to_json_string(self : Migration) -> String {
 }
 
 ///|
+/// Convert an execution error to a stable machine-readable object.
+pub fn MigrationError::to_json(self : MigrationError) -> Json {
+  let object : Map[String, Json] = Map([])
+  object["code"] = Json::string(self.code.label())
+  object["operation_index"] = Json::number(self.operation_index.to_double())
+  object["path"] = Json::string(self.path)
+  object["message"] = Json::string(self.message)
+  Json::object(object)
+}
+
+///|
+pub fn MigrationError::to_json_string(self : MigrationError) -> String {
+  self.to_json().stringify()
+}
+
+///|
+/// Convert static plan diagnostics to a JSON object for CI and host tooling.
+pub fn PreflightReport::to_json(self : PreflightReport) -> Json {
+  let object : Map[String, Json] = Map([])
+  object["valid"] = Json::boolean(self.is_valid())
+  object["errors"] = Json::array(self.errors.map(Json::string))
+  object["warnings"] = Json::array(self.warnings.map(Json::string))
+  Json::object(object)
+}
+
+///|
+pub fn PreflightReport::to_json_string(self : PreflightReport) -> String {
+  self.to_json().stringify()
+}
+
+///|
 pub fn parse_value(text : String) -> Result[Value, String] {
   Ok(Value::from_json(@json.parse(text))) catch {
     _ => Err("invalid JSON document")

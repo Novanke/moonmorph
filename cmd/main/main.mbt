@@ -68,6 +68,8 @@ fn run_apply(document_text : String, migration_text : String) -> Unit {
       println(
         "MIGRATION_ERROR operation=" +
         error.operation_index.to_string() +
+        " code=" +
+        error.code.label() +
         " path=" +
         error.path +
         " message=" +

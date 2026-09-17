@@ -79,3 +79,38 @@ test "generated rollback plan is portable JSON" {
   let restored = apply(portable, result.value).unwrap()
   inspect(restored.value.to_json_string(), content="{\"version\":1}")
 }
+
+///|
+test "execution errors have stable JSON codes" {
+  let document : Value = Object([])
+  let migration = Migration::new(
+    name="missing",
+    from_version="1",
+    to_version="2",
+    operations=[Remove(Path::parse("/missing").unwrap())],
+  )
+  guard apply(migration, document) is Err(error) else {
+    fail("expected missing path error")
+  }
+  inspect(
+    error.to_json_string(),
+    content="{\"code\":\"not_found\",\"operation_index\":0,\"path\":\"/missing\",\"message\":\"object key not found\"}",
+  )
+}
+
+///|
+test "preflight reports serialize for CI" {
+  let migration = Migration::new(name="", from_version="1", to_version="1", operations=[])
+  let report = preflight(migration)
+  let json = report.to_json()
+  guard json is Json::Object(object) else { fail("expected diagnostic object") }
+  inspect(object["valid"] == Json::boolean(false), content="true")
+  guard object["errors"] is Json::Array(errors) else {
+    fail("expected error array")
+  }
+  inspect(errors.length(), content="2")
+  guard object["warnings"] is Json::Array(warnings) else {
+    fail("expected warning array")
+  }
+  inspect(warnings.length(), content="1")
+}

@@ -76,6 +76,21 @@ pub(all) enum ErrorCode {
 } derive(Debug, Eq)
 
 ///|
+/// Stable machine-readable label for an execution error category.
+pub fn ErrorCode::label(self : ErrorCode) -> String {
+  match self {
+    InvalidPath => "invalid_path"
+    NotFound => "not_found"
+    TypeMismatch => "type_mismatch"
+    IndexOutOfBounds => "index_out_of_bounds"
+    AlreadyExists => "already_exists"
+    TestFailed => "test_failed"
+    Conflict => "conflict"
+    NonReversible => "non_reversible"
+  }
+}
+
+///|
 pub(all) struct MigrationError {
   code : ErrorCode
   operation_index : Int
