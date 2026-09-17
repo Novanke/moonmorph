@@ -38,6 +38,72 @@ pub fn Value::to_json(self : Value) -> Json {
 }
 
 ///|
+fn operation_to_json(operation : Operation) -> Json {
+  let object : Map[String, Json] = Map([])
+  match operation {
+    Add(path, value) => {
+      object["op"] = Json::string("add")
+      object["path"] = Json::string(path.to_string())
+      object["value"] = value.to_json()
+    }
+    Replace(path, value) => {
+      object["op"] = Json::string("replace")
+      object["path"] = Json::string(path.to_string())
+      object["value"] = value.to_json()
+    }
+    Remove(path) => {
+      object["op"] = Json::string("remove")
+      object["path"] = Json::string(path.to_string())
+    }
+    Copy(from, path) => {
+      object["op"] = Json::string("copy")
+      object["from"] = Json::string(from.to_string())
+      object["path"] = Json::string(path.to_string())
+    }
+    Move(from, path) => {
+      object["op"] = Json::string("move")
+      object["from"] = Json::string(from.to_string())
+      object["path"] = Json::string(path.to_string())
+    }
+    Test(path, value) => {
+      object["op"] = Json::string("test")
+      object["path"] = Json::string(path.to_string())
+      object["value"] = value.to_json()
+    }
+    Increment(path, delta) => {
+      object["op"] = Json::string("increment")
+      object["path"] = Json::string(path.to_string())
+      object["delta"] = Json::number(delta)
+    }
+    Rename(path, from, to) => {
+      object["op"] = Json::string("rename")
+      object["path"] = Json::string(path.to_string())
+      object["from"] = Json::string(from)
+      object["to"] = Json::string(to)
+    }
+  }
+  Json::object(object)
+}
+
+///|
+/// Convert a typed migration back to its portable declarative JSON form.
+/// Generated rollback plans can be serialized with the same method.
+pub fn Migration::to_json(self : Migration) -> Json {
+  let object : Map[String, Json] = Map([])
+  object["name"] = Json::string(self.name)
+  object["from"] = Json::string(self.from_version)
+  object["to"] = Json::string(self.to_version)
+  object["operations"] = Json::array(self.operations.map(operation_to_json))
+  Json::object(object)
+}
+
+///|
+/// Serialize a migration as compact JSON.
+pub fn Migration::to_json_string(self : Migration) -> String {
+  self.to_json().stringify()
+}
+
+///|
 pub fn parse_value(text : String) -> Result[Value, String] {
   Ok(Value::from_json(@json.parse(text))) catch {
     _ => Err("invalid JSON document")

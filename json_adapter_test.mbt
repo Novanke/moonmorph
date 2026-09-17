@@ -36,3 +36,46 @@ test "parser reports operation index" {
     Ok(_) => fail("expected an invalid delta error")
   }
 }
+
+///|
+test "migration JSON serialization preserves every operation" {
+  let original = Migration::new(
+    name="all-operations",
+    from_version="1",
+    to_version="2",
+    operations=[
+      Test(Path::parse("/version").unwrap(), Number(1.0)),
+      Add(Path::parse("/enabled").unwrap(), Bool(true)),
+      Replace(Path::parse("/version").unwrap(), Number(2.0)),
+      Remove(Path::parse("/legacy").unwrap()),
+      Copy(
+        Path::parse("/profile/name").unwrap(),
+        Path::parse("/display_name").unwrap(),
+      ),
+      Move(Path::parse("/old").unwrap(), Path::parse("/new").unwrap()),
+      Increment(Path::parse("/quota").unwrap(), 2.5),
+      Rename(Path::parse("/profile").unwrap(), "name", "full_name"),
+    ],
+  )
+  let encoded = original.to_json_string()
+  let decoded = parse_migration(encoded).unwrap()
+  inspect(decoded == original, content="true")
+}
+
+///|
+test "generated rollback plan is portable JSON" {
+  let document : Value = Object([("version", Number(1.0))])
+  let migration = Migration::new(
+    name="upgrade",
+    from_version="1",
+    to_version="2",
+    operations=[Replace(Path::parse("/version").unwrap(), Number(2.0))],
+  )
+  let result = apply(migration, document).unwrap()
+  guard result.rollback is Some(rollback) else {
+    fail("expected rollback plan")
+  }
+  let portable = parse_migration(rollback.to_json_string()).unwrap()
+  let restored = apply(portable, result.value).unwrap()
+  inspect(restored.value.to_json_string(), content="{\"version\":1}")
+}
