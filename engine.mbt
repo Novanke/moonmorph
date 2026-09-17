@@ -497,6 +497,99 @@ pub fn dry_run(migration : Migration) -> Array[String] {
 }
 
 ///|
+fn invalid_append(path : Path, allow_final : Bool) -> Bool {
+  let segments = path.segments()
+  for i, segment in segments {
+    if segment is Append && (!allow_final || i + 1 != segments.length()) {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn append_error(
+  errors : Array[String],
+  operation_index : Int,
+  path : Path,
+  allow_final : Bool,
+) -> Unit {
+  if invalid_append(path, allow_final) {
+    errors.push(
+      "operation " +
+      operation_index.to_string() +
+      ": '-' is only valid as the final path segment of add",
+    )
+  }
+}
+
+///|
+/// Analyze plan-level invariants without reading or changing a document.
+/// Errors indicate plans that cannot be safely executed; warnings call out
+/// review-worthy write chains that may still be intentional.
+pub fn preflight(migration : Migration) -> PreflightReport {
+  let errors : Array[String] = []
+  let warnings : Array[String] = []
+  if migration.name.trim().is_empty() {
+    errors.push("migration name must not be empty")
+  }
+  if migration.from_version.trim().is_empty() {
+    errors.push("source version must not be empty")
+  }
+  if migration.to_version.trim().is_empty() {
+    errors.push("target version must not be empty")
+  }
+  if migration.from_version == migration.to_version {
+    errors.push("source and target versions must differ")
+  }
+  if migration.operations.is_empty() {
+    warnings.push("migration contains no operations")
+  }
+  for index, operation in migration.operations {
+    match operation {
+      Add(path, _) => append_error(errors, index, path, true)
+      Replace(path, _) | Remove(path) | Test(path, _) | Increment(path, _) =>
+        append_error(errors, index, path, false)
+      Copy(source, destination) => {
+        append_error(errors, index, source, false)
+        append_error(errors, index, destination, false)
+      }
+      Move(source, destination) => {
+        append_error(errors, index, source, false)
+        append_error(errors, index, destination, false)
+        if source == destination {
+          errors.push(
+            "operation " +
+            index.to_string() +
+            ": move source and destination must differ",
+          )
+        } else if source.is_prefix_of(destination) {
+          errors.push(
+            "operation " +
+            index.to_string() +
+            ": cannot move a value into its own descendant",
+          )
+        }
+      }
+      Rename(parent, from, to) => {
+        append_error(errors, index, parent, false)
+        if from == to {
+          errors.push(
+            "operation " +
+            index.to_string() +
+            ": rename source and destination keys must differ",
+          )
+        }
+      }
+    }
+  }
+  for conflict in detect_conflicts(migration) {
+    warnings.push(conflict)
+  }
+  { errors, warnings, }
+}
+
+///|
 pub fn detect_conflicts(migration : Migration) -> Array[String] {
   let conflicts : Array[String] = []
   for i, left in migration.operations {

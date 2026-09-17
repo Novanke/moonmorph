@@ -39,9 +39,15 @@ fn run_apply(document_text : String, migration_text : String) -> Unit {
       return
     }
   }
-  let conflicts = @moonmorph.detect_conflicts(migration)
-  if !conflicts.is_empty() {
-    println("PREFLIGHT_WARNING " + conflicts.join("; "))
+  let report = @moonmorph.preflight(migration)
+  for warning in report.warnings {
+    println("PREFLIGHT_WARNING " + warning)
+  }
+  if !report.is_valid() {
+    for error in report.errors {
+      println("PREFLIGHT_ERROR " + error)
+    }
+    return
   }
   match @moonmorph.apply(migration, document) {
     Ok(result) => {
@@ -98,10 +104,18 @@ fn main {
       run_apply(args[command_index + 1], args[command_index + 2])
     "dry-run" if args.length() == command_index + 2 =>
       match @moonmorph.parse_migration(args[command_index + 1]) {
-        Ok(migration) =>
+        Ok(migration) => {
+          let report = @moonmorph.preflight(migration)
+          for error in report.errors {
+            println("PREFLIGHT_ERROR " + error)
+          }
+          for warning in report.warnings {
+            println("PREFLIGHT_WARNING " + warning)
+          }
           for line in @moonmorph.dry_run(migration) {
             println(line)
           }
+        }
         Err(message) => println("SPEC_ERROR " + message)
       }
     _ => print_help()

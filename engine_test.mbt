@@ -218,3 +218,51 @@ test "test precondition stops the transaction" {
     Ok(_) => fail("expected failed precondition")
   }
 }
+
+///|
+test "preflight accepts a valid append migration" {
+  let migration = Migration::new(
+    name="append-feature",
+    from_version="1",
+    to_version="2",
+    operations=[Add(p("/features/-"), String("audit"))],
+  )
+  let report = preflight(migration)
+  inspect(report.is_valid(), content="true")
+  inspect(report.warnings.length(), content="0")
+}
+
+///|
+test "preflight rejects unsafe plan invariants" {
+  let migration = Migration::new(name="", from_version="1", to_version="1", operations=[
+    Remove(p("/features/-")),
+    Move(p("/service"), p("/service/archive")),
+    Rename(p("/service"), "host", "host"),
+  ])
+  let report = preflight(migration)
+  inspect(report.is_valid(), content="false")
+  inspect(report.errors.length(), content="5")
+  inspect(
+    report.errors[3],
+    content="operation 1: cannot move a value into its own descendant",
+  )
+}
+
+///|
+test "preflight reports empty and repeated write plans" {
+  let empty = Migration::new(name="empty", from_version="1", to_version="2", operations=[])
+  inspect(
+    preflight(empty).warnings[0],
+    content="migration contains no operations",
+  )
+  let repeated = Migration::new(
+    name="repeated",
+    from_version="1",
+    to_version="2",
+    operations=[
+      Replace(p("/version"), Number(2.0)),
+      Increment(p("/version"), 1.0),
+    ],
+  )
+  inspect(preflight(repeated).warnings.length(), content="1")
+}

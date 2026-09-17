@@ -119,3 +119,18 @@ pub fn Path::child_key(self : Path, key : String) -> Path {
 pub fn Path::child_index(self : Path, index : Int) -> Path {
   { segments: [..self.segments, Index(index)], }
 }
+
+///|
+/// Return true when every segment in this path starts `other`.
+/// A path is considered a prefix of itself.
+pub fn Path::is_prefix_of(self : Path, other : Path) -> Bool {
+  if self.segments.length() > other.segments.length() {
+    return false
+  }
+  for i, segment in self.segments {
+    if segment != other.segments[i] {
+      return false
+    }
+  }
+  true
+}

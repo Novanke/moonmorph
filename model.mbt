@@ -96,3 +96,15 @@ pub(all) struct MigrationResult {
   journal : Array[JournalEntry]
   rollback : Migration?
 } derive(Debug, Eq)
+
+///|
+/// Static diagnostics produced before a migration touches a document.
+pub(all) struct PreflightReport {
+  errors : Array[String]
+  warnings : Array[String]
+} derive(Debug, Eq)
+
+///|
+pub fn PreflightReport::is_valid(self : PreflightReport) -> Bool {
+  self.errors.is_empty()
+}
