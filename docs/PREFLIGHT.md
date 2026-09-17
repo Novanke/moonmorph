@@ -18,9 +18,11 @@ Errors currently cover:
 Warnings currently cover:
 
 - migrations with no operations;
-- multiple non-`test` operations writing the same path.
+- multiple operations writing the same or overlapping ancestor/descendant paths.
 
-Repeated writes are warnings because they can be intentional, such as replacing a version value and then incrementing it. Hosts may promote warnings to errors according to local policy.
+Write analysis includes both the removal and insertion endpoints of `move` and `rename`. Repeated or overlapping writes are warnings because they can be intentional, such as replacing a version value and then incrementing it. Hosts may promote warnings to errors according to local policy.
+
+Reports can be serialized for CI with `PreflightReport::to_json_string`. The object contains a `valid` boolean plus `errors` and `warnings` arrays.
 
 ## Dynamic checks
 

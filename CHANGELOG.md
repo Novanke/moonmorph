@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-09-17
+
+- Compact generated rollback migrations to one original root snapshot.
+- Detect exact and ancestor/descendant write overlaps.
+- Include both endpoints of `move` and `rename` in write-set analysis.
+- Add stable error-code labels and JSON diagnostics for errors and preflight reports.
+- Expand the cross-backend test suite to 33 tests.
+
 ## 0.2.0 — 2026-09-17
 
 - Serialize typed migrations and generated rollback plans to portable JSON.

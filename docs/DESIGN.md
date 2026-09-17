@@ -2,9 +2,9 @@
 
 ## Root snapshots for rollback
 
-Minimal inverse patches are attractive but subtle: removing an array item shifts later indexes; moving a parent into a descendant can invalidate both paths; and overwriting an object key needs the previous value. MoonMorph stores the entire pre-step value as `Replace(root, snapshot)`. The invariant is simple: applying inverse entries in reverse order restores the exact original value.
+Minimal inverse patches are attractive but subtle: removing an array item shifts later indexes; moving a parent into a descendant can invalidate both paths; and overwriting an object key needs the previous value. Journal entries retain the entire pre-step value as `Replace(root, snapshot)` so each completed step has an exact inverse. The generated recovery migration is more compact: it contains only one root snapshot of the original document, regardless of the number of forward operations.
 
-This is the correct default for configuration documents, which are usually small. A future storage strategy can add compact inverses behind the same public result type.
+This is the correct default for configuration documents, which are usually small. It keeps detailed audit information while minimizing the persisted rollback artifact. A future journal policy can make per-step snapshots optional behind a separate API.
 
 ## Preconditions are operations
 

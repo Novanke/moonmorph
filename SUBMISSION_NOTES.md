@@ -14,5 +14,5 @@ The competition form says the one-page project proposal must not be written by A
 - Core functions: typed paths; add/replace/remove/copy/move/test/increment/rename; atomic execution; rollback generation; dry run; conflict detection; JSON spec parser; version graph planning
 - Originality: original implementation; based on public JSON Pointer conventions but not ported from another codebase
 - License: Apache-2.0
-- Verification facts: 26 tests currently pass on Wasm, Wasm-GC and JavaScript; strict all-target type check passes
+- Verification facts: 33 tests currently pass on Wasm, Wasm-GC and JavaScript; strict all-target type check passes
 - Repository link: fill after the public repository is created

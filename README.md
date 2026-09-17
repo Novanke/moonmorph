@@ -107,7 +107,7 @@ assert_eq(restored.value, document)
 
 ## Preflight validation
 
-`preflight` performs checks that do not require an input document. It rejects empty version metadata, identical source and target versions, illegal `-` segments, moves into descendants, and no-op renames. It also warns about empty plans and repeated writes to the same path.
+`preflight` performs checks that do not require an input document. It rejects empty version metadata, identical source and target versions, illegal `-` segments, moves into descendants, and no-op renames. It also warns about empty plans and overlapping writes. Write analysis covers ancestor/descendant paths plus both endpoints of `move` and `rename`.
 
 ```moonbit
 let report = @moonmorph.preflight(migration)
@@ -133,7 +133,7 @@ let rollback = @moonmorph.parse_migration(rollback_json).unwrap()
 let restored = @moonmorph.apply(rollback, result.value).unwrap()
 ```
 
-This lets a host persist a recovery artifact separately from the migrated configuration. Because rollback snapshots can contain old secrets, protect them with the same controls as the source document.
+This lets a host persist a recovery artifact separately from the migrated configuration. The generated recovery plan uses one root snapshot regardless of the number of forward operations, while journal entries retain their per-step inverses for inspection. Because rollback snapshots can contain old secrets, protect them with the same controls as the source document.
 
 ## Version routing
 
@@ -148,6 +148,19 @@ let upgraded = @moonmorph.apply(route, document).unwrap()
 
 Errors contain a stable code, zero-based operation index, path, and human-readable message. The engine distinguishes malformed paths, missing values, type mismatches, bounds errors, unsafe rename overwrites, failed preconditions, conflicts and non-reversible plans.
 
+`ErrorCode::label`, `MigrationError::to_json_string` and `PreflightReport::to_json_string` expose stable machine-readable diagnostics for CI and host applications. Error labels are:
+
+| Label | Meaning |
+|---|---|
+| `invalid_path` | The path syntax or operation-specific path usage is invalid |
+| `not_found` | A required key or value does not exist |
+| `type_mismatch` | The input value has an incompatible type |
+| `index_out_of_bounds` | An array index is outside the allowed range |
+| `already_exists` | A safe operation would overwrite an existing destination |
+| `test_failed` | A migration precondition did not match |
+| `conflict` | The requested update conflicts with plan semantics |
+| `non_reversible` | No rollback plan is available |
+
 Atomicity does not rely on callers remembering to clone data. MoonMorph deep-copies the input before execution and returns no partially changed value on failure.
 
 ## Verification
@@ -160,7 +173,7 @@ moon test --target wasm-gc
 moon test --target js
 ```
 
-The 26-test suite covers RFC 6901 escaping, typed path-prefix checks, nested lookup, numeric and dash object keys, root replacement, object and array edits, move/copy semantics, rename collision safety, bounds and type failures, atomic failure, exact rollback, migration serialization, declarative parsing, structured preflight, catalog validation, reachability and shortest-route planning.
+The 33-test suite covers RFC 6901 escaping, typed path-prefix checks, nested lookup, numeric and dash object keys, root replacement, object and array edits, move/copy semantics, rename collision safety, bounds and type failures, atomic failure, compact exact rollback, migration serialization, machine-readable diagnostics, declarative parsing, overlapping-write preflight, catalog validation, reachability and shortest-route planning.
 
 ## Project layout
 
@@ -184,6 +197,7 @@ docs/              architecture and design decisions
 | `parse_migration` / `Migration::to_json_string` | Decode and encode portable migration plans |
 | `preflight` / `dry_run` | Review static plan diagnostics and operation summaries |
 | `apply` / `apply_rollback` | Execute atomically and restore an exact prior value |
+| `MigrationError::to_json_string` | Export stable structured execution diagnostics |
 | `validate_catalog` / `plan_route` | Validate a version graph and compose its shortest route |
 | `reachable_versions` | Enumerate deterministic BFS reachability |
 
