@@ -437,16 +437,15 @@ pub fn apply(
   migration : Migration,
   input : Value,
 ) -> Result[MigrationResult, MigrationError] {
-  let mut current = input.deep_copy()
+  let original = input.deep_copy()
+  let mut current = original.deep_copy()
   let journal : Array[JournalEntry] = []
-  let inverses : Array[Operation] = []
   for index, operation in migration.operations {
     let before = current.deep_copy()
     match apply_one(current, operation) {
       Ok(updated) => {
         current = updated
         let inverse = Replace(Path::root(), before)
-        inverses.push(inverse)
         journal.push({
           operation_index: index,
           summary: operation_summary(operation),
@@ -456,9 +455,10 @@ pub fn apply(
       Err(error) => return Err({ ..error, operation_index: index, })
     }
   }
-  let rollback_operations : Array[Operation] = []
-  for i = inverses.length() - 1; i >= 0; i = i - 1 {
-    rollback_operations.push(inverses[i])
+  let rollback_operations = if migration.operations.is_empty() {
+    []
+  } else {
+    [Replace(Path::root(), original)]
   }
   Ok({
     value: current,

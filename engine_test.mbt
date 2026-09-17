@@ -51,6 +51,49 @@ test "atomic migration and rollback" {
 }
 
 ///|
+test "rollback plan uses one root snapshot" {
+  let migration = Migration::new(
+    name="multi-step",
+    from_version="1",
+    to_version="2",
+    operations=[
+      Replace(p("/version"), Number(2.0)),
+      Increment(p("/service/port"), 1.0),
+      Add(p("/features/-"), String("audit")),
+    ],
+  )
+  let result = apply(migration, sample_document()).unwrap()
+  inspect(result.journal.length(), content="3")
+  guard result.rollback is Some(rollback) else {
+    fail("expected rollback plan")
+  }
+  inspect(rollback.operations.length(), content="1")
+  inspect(
+    apply(rollback, result.value).unwrap().value == sample_document(),
+    content="true",
+  )
+}
+
+///|
+test "identity migration keeps an empty rollback plan" {
+  let migration = Migration::new(
+    name="identity",
+    from_version="1",
+    to_version="2",
+    operations=[],
+  )
+  let result = apply(migration, sample_document()).unwrap()
+  guard result.rollback is Some(rollback) else {
+    fail("expected rollback plan")
+  }
+  inspect(rollback.operations.length(), content="0")
+  inspect(
+    apply_rollback(result).unwrap().value == sample_document(),
+    content="true",
+  )
+}
+
+///|
 test "failure leaves caller input unchanged" {
   let original = sample_document()
   let migration = Migration::new(
