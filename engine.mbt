@@ -324,15 +324,14 @@ fn remove(value : Value, path : Path) -> Result[Value, MigrationError] {
 }
 
 ///|
-fn operation_path(operation : Operation) -> Path {
+fn operation_write_paths(operation : Operation) -> Array[Path] {
   match operation {
-    Add(path, _)
-    | Replace(path, _)
-    | Remove(path)
-    | Test(path, _)
-    | Increment(path, _) => path
-    Copy(_, destination) | Move(_, destination) => destination
-    Rename(parent, _, _) => parent
+    Add(path, _) | Replace(path, _) | Remove(path) | Increment(path, _) =>
+      [path]
+    Test(_, _) => []
+    Copy(_, destination) => [destination]
+    Move(source, destination) => [source, destination]
+    Rename(parent, from, to) => [parent.child_key(from), parent.child_key(to)]
   }
 }
 
@@ -593,25 +592,41 @@ pub fn preflight(migration : Migration) -> PreflightReport {
 pub fn detect_conflicts(migration : Migration) -> Array[String] {
   let conflicts : Array[String] = []
   for i, left in migration.operations {
-    if left is Test(_, _) {
+    let left_paths = operation_write_paths(left)
+    if left_paths.is_empty() {
       continue
     }
-    let left_path = operation_path(left).to_string()
     for j in (i + 1)..<migration.operations.length() {
       let right = migration.operations[j]
-      if right is Test(_, _) {
+      let right_paths = operation_write_paths(right)
+      if right_paths.is_empty() {
         continue
       }
-      let right_path = operation_path(right).to_string()
-      if left_path == right_path {
-        conflicts.push(
-          "operations " +
-          i.to_string() +
-          " and " +
-          j.to_string() +
-          " both write " +
-          left_path,
-        )
+      for left_path in left_paths {
+        for right_path in right_paths {
+          if left_path == right_path {
+            conflicts.push(
+              "operations " +
+              i.to_string() +
+              " and " +
+              j.to_string() +
+              " both write " +
+              left_path.to_string(),
+            )
+          } else if left_path.is_prefix_of(right_path) ||
+            right_path.is_prefix_of(left_path) {
+            conflicts.push(
+              "operations " +
+              i.to_string() +
+              " and " +
+              j.to_string() +
+              " write overlapping paths " +
+              left_path.to_string() +
+              " and " +
+              right_path.to_string(),
+            )
+          }
+        }
       }
     }
   }

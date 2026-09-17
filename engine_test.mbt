@@ -148,6 +148,60 @@ test "preflight reports same-path writes" {
 }
 
 ///|
+test "preflight reports ancestor and descendant writes" {
+  let migration = Migration::new(
+    name="overlap",
+    from_version="1",
+    to_version="2",
+    operations=[
+      Replace(p("/service"), Object([])),
+      Increment(p("/service/port"), 1.0),
+    ],
+  )
+  let conflicts = detect_conflicts(migration)
+  inspect(conflicts.length(), content="1")
+  inspect(
+    conflicts[0],
+    content="operations 0 and 1 write overlapping paths /service and /service/port",
+  )
+}
+
+///|
+test "preflight tracks both move write paths" {
+  let migration = Migration::new(
+    name="move-overlap",
+    from_version="1",
+    to_version="2",
+    operations=[
+      Move(p("/service/host"), p("/archived_host")),
+      Add(p("/service/host"), String("replacement")),
+    ],
+  )
+  let conflicts = detect_conflicts(migration)
+  inspect(conflicts.length(), content="1")
+  inspect(conflicts[0], content="operations 0 and 1 both write /service/host")
+}
+
+///|
+test "preflight tracks rename destination writes" {
+  let migration = Migration::new(
+    name="rename-overlap",
+    from_version="1",
+    to_version="2",
+    operations=[
+      Rename(p("/service"), "host", "hostname"),
+      Replace(p("/service/hostname"), String("example.test")),
+    ],
+  )
+  let conflicts = detect_conflicts(migration)
+  inspect(conflicts.length(), content="1")
+  inspect(
+    conflicts[0],
+    content="operations 0 and 1 both write /service/hostname",
+  )
+}
+
+///|
 test "object keys are type-directed" {
   let document : Value = Object([
     ("0", String("zero")),
