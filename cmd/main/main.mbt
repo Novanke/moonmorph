@@ -79,12 +79,44 @@ fn run_apply(document_text : String, migration_text : String) -> Unit {
 }
 
 ///|
+fn run_diff(source_text : String, target_text : String) -> Unit {
+  let source = match @moonmorph.parse_value(source_text) {
+    Ok(value) => value
+    Err(message) => {
+      println("SOURCE_ERROR " + message)
+      return
+    }
+  }
+  let target = match @moonmorph.parse_value(target_text) {
+    Ok(value) => value
+    Err(message) => {
+      println("TARGET_ERROR " + message)
+      return
+    }
+  }
+  let migration = @moonmorph.synthesize_migration(
+    name="generated-diff",
+    from_version="source",
+    to_version="target",
+    source~,
+    target~,
+  )
+  println(migration.to_json_string())
+  match @moonmorph.apply(migration, source) {
+    Ok(result) =>
+      println("DIFF_VERIFIED " + (result.value == target).to_string())
+    Err(error) => println("DIFF_ERROR " + error.to_json_string())
+  }
+}
+
+///|
 fn print_help() -> Unit {
   println("MoonMorph — atomic, reversible JSON migrations")
   println("Usage:")
   println("  moon run cmd/main -- demo")
   println("  moon run cmd/main -- apply '<document-json>' '<migration-json>'")
   println("  moon run cmd/main -- dry-run '<migration-json>'")
+  println("  moon run cmd/main -- diff '<source-json>' '<target-json>'")
 }
 
 ///|
@@ -92,7 +124,7 @@ fn main {
   let args = @env.args()
   let mut command_index = -1
   for i, arg in args {
-    if arg == "demo" || arg == "apply" || arg == "dry-run" {
+    if arg == "demo" || arg == "apply" || arg == "dry-run" || arg == "diff" {
       command_index = i
       break
     }
@@ -120,6 +152,8 @@ fn main {
         }
         Err(message) => println("SPEC_ERROR " + message)
       }
+    "diff" if args.length() == command_index + 3 =>
+      run_diff(args[command_index + 1], args[command_index + 2])
     _ => print_help()
   }
 }
