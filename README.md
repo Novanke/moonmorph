@@ -12,6 +12,7 @@ Configuration upgrades often fail halfway through: one key has been renamed, an 
 - **Atomic by construction** — a failed operation never mutates the caller's document.
 - **Automatic rollback** — every successful step captures an inverse root snapshot, including moves and array edits that are otherwise difficult to invert correctly.
 - **Declarative plans** — migrations are ordinary JSON and work well in code review and CI.
+- **Plan synthesis** — derive a deterministic, portable migration by comparing current and desired JSON values.
 - **Version graph planning** — compose the shortest deterministic route across a migration catalog.
 - **Preflight diagnostics** — flag same-path writes before execution and report the exact failing operation.
 - **Portable recovery plans** — serialize generated rollback migrations back to declarative JSON.
@@ -45,6 +46,18 @@ moon run cmd/main -- apply \
   '{"name":"v2","from":"1","to":"2","operations":[{"op":"replace","path":"/version","value":2}]}'
 ```
 
+It can also synthesize a migration from current and desired JSON:
+
+```bash
+moon run cmd/main -- diff \
+  '{"version":1,"features":["search"]}' \
+  '{"version":2,"features":["search","audit"]}'
+```
+
+The first line is a portable migration JSON document. The second line is
+`DIFF_VERIFIED true`, proving that applying the generated plan reaches the exact
+target value.
+
 ## Migration format
 
 ```json
@@ -76,6 +89,31 @@ Supported operations:
 | `rename` | Rename an object key without overwriting a destination |
 
 Paths use RFC 6901 escaping: `/a~1b` addresses key `a/b`, `/~0meta` addresses `~meta`, and `/-` appends to an array during `add`.
+
+## Migration synthesis
+
+`synthesize_migration` compares two `Value` trees and returns an ordinary
+`Migration`, so generated plans use the same preflight, serialization, execution
+and rollback path as hand-written plans.
+
+```moonbit
+let generated = @moonmorph.synthesize_migration(
+  name="generated-v2",
+  from_version="1",
+  to_version="2",
+  source=current,
+  target=desired,
+)
+let result = @moonmorph.apply(generated, current).unwrap()
+assert_eq(result.value, desired)
+```
+
+The synthesizer recursively patches objects and arrays when their order can be
+preserved. It removes array tails from the end to avoid index drift and escapes
+generated object paths through the typed RFC 6901 layer. When an object-key
+reorder cannot be represented cleanly, it emits one parent `replace` instead of
+noisy remove/add churn. See [the synthesis guide](docs/DIFF.md) for the exact
+determinism rules and trade-offs.
 
 ## Library example
 
@@ -173,7 +211,7 @@ moon test --target wasm-gc
 moon test --target js
 ```
 
-The 33-test suite covers RFC 6901 escaping, typed path-prefix checks, nested lookup, numeric and dash object keys, root replacement, object and array edits, move/copy semantics, rename collision safety, bounds and type failures, atomic failure, compact exact rollback, migration serialization, machine-readable diagnostics, declarative parsing, overlapping-write preflight, catalog validation, reachability and shortest-route planning.
+The 38-test suite covers RFC 6901 escaping, typed path-prefix checks, nested lookup, numeric and dash object keys, root replacement, object and array edits, move/copy semantics, rename collision safety, bounds and type failures, atomic failure, compact exact rollback, migration serialization, machine-readable diagnostics, declarative parsing, deterministic migration synthesis, overlapping-write preflight, catalog validation, reachability and shortest-route planning.
 
 ## Project layout
 
@@ -182,6 +220,7 @@ model.mbt          public data model and structured errors
 path.mbt           RFC 6901-style path parser and renderer
 value.mbt          ordered value model, cloning and stable serialization
 engine.mbt         atomic executor, journal, rollback and preflight
+diff.mbt           deterministic migration synthesis from source/target values
 json_adapter.mbt   MoonBit Json adapters and migration-spec parser
 planner.mbt        catalog validation and deterministic BFS routing
 cmd/main/          runnable CLI demonstration
@@ -197,6 +236,7 @@ docs/              architecture and design decisions
 | `parse_migration` / `Migration::to_json_string` | Decode and encode portable migration plans |
 | `preflight` / `dry_run` | Review static plan diagnostics and operation summaries |
 | `apply` / `apply_rollback` | Execute atomically and restore an exact prior value |
+| `diff_values` / `synthesize_migration` | Derive operations or a portable migration from source and target values |
 | `MigrationError::to_json_string` | Export stable structured execution diagnostics |
 | `validate_catalog` / `plan_route` | Validate a version graph and compose its shortest route |
 | `reachable_versions` | Enumerate deterministic BFS reachability |

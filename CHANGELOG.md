@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.0 — 2026-09-21
+
+- Synthesize deterministic migrations by comparing source and target JSON values.
+- Recursively patch ordered objects and arrays while preserving exact target output.
+- Fall back to a compact parent replacement when object-key reordering cannot be expressed cleanly.
+- Add a `diff` CLI command that prints a portable plan and verifies the generated result.
+- Add a runnable target document, synthesis guide and CI smoke test.
+- Expand the cross-backend test suite to 38 tests.
+
 ## 0.3.0 — 2026-09-17
 
 - Compact generated rollback migrations to one original root snapshot.
