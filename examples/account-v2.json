@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "profile": {
+    "quota": 15,
+    "name": "Ada"
+  },
+  "roles": ["reader", "contributor"]
+}
