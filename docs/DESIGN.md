@@ -29,3 +29,7 @@ When two shortest version routes exist, catalog order wins. This avoids non-dete
 ## Recovery plans use the input format
 
 Rollback output is serialized as an ordinary migration rather than a second recovery-specific schema. One parser and one executor therefore cover both forward and reverse workflows, which reduces integration surface and makes recovery artifacts independently testable.
+
+## Synthesized plans prefer exactness over cosmetic minimality
+
+The diff synthesizer guarantees that applying its output produces the exact ordered target value. It emits small nested patches when object-key order remains representable, and replaces a parent object when keys are reordered or inserted before existing keys. This deliberately avoids claiming globally minimal edit scripts and keeps output deterministic across backends. Arrays use index updates plus descending tail removals and ordered appends, which avoids index drift without a separate sequence-alignment algorithm.

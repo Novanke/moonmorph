@@ -9,6 +9,7 @@ JSON document ──► ordered Value ──► atomic executor ──► migrat
 migration JSON ─► typed Operations ─► preflight ─┘   └── rollback plan ─► JSON
                             ▲
 catalog ─────────────► route planner
+source + target ─────► diff synthesizer ──► portable Migration
 ```
 
 ## Ordered value model
@@ -34,6 +35,10 @@ Typed migrations serialize to the same declarative JSON accepted by the parser. 
 ## Planner
 
 The planner views migrations as directed edges between version strings. Breadth-first search finds the minimum number of migrations. Visited versions prevent cycles; input order provides a deterministic tie-break. The returned route is an ordinary `Migration`, so execution and rollback need no planner-specific logic.
+
+## Diff synthesizer
+
+The synthesizer walks source and target values through typed `Path` objects and emits ordinary operations. Arrays are compared index-by-index, shortened from the tail and extended in target order. Ordered objects are patched recursively when common-key order is stable and new keys form a suffix. Otherwise one parent replacement preserves exact target ordering without a long sequence of destructive operations. Generated migrations enter the same preflight, executor, journal, rollback and JSON adapter pipeline as hand-written migrations.
 
 ## Trust boundary
 
