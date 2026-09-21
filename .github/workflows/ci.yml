@@ -23,4 +23,5 @@ jobs:
         run: ~/.moon/bin/moon test --target js
       - name: Run demo
         run: ~/.moon/bin/moon run cmd/main --target js -- demo
-
+      - name: Run migration synthesis smoke test
+        run: ~/.moon/bin/moon run cmd/main --target js -- diff '{"version":1}' '{"version":2}'
