@@ -11,3 +11,5 @@ license = "Apache-2.0"
 keywords = [ "json", "migration", "rollback", "configuration" ]
 
 description = "Atomic, reversible JSON migrations in pure MoonBit"
+
+warnings = "-test_unqualified_package"
