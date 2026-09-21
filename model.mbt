@@ -10,6 +10,12 @@ pub(all) enum Value {
 } derive(Debug, Eq)
 
 ///|
+pub extend Value with Debug::{to_repr}
+
+///|
+pub extend Value with Eq::{not_equal, equal}
+
+///|
 /// One component in a parsed path.
 pub(all) enum Segment {
   Key(String)
@@ -18,10 +24,22 @@ pub(all) enum Segment {
 } derive(Debug, Eq)
 
 ///|
+pub extend Segment with Debug::{to_repr}
+
+///|
+pub extend Segment with Eq::{not_equal, equal}
+
+///|
 /// A parsed RFC 6901-style path.
 pub(all) struct Path {
   segments : Array[Segment]
 } derive(Debug, Eq)
+
+///|
+pub extend Path with Debug::{to_repr}
+
+///|
+pub extend Path with Eq::{not_equal, equal}
 
 ///|
 pub fn Path::root() -> Path {
@@ -46,12 +64,24 @@ pub(all) enum Operation {
 } derive(Debug, Eq)
 
 ///|
+pub extend Operation with Debug::{to_repr}
+
+///|
+pub extend Operation with Eq::{not_equal, equal}
+
+///|
 pub(all) struct Migration {
   name : String
   from_version : String
   to_version : String
   operations : Array[Operation]
 } derive(Debug, Eq)
+
+///|
+pub extend Migration with Debug::{to_repr}
+
+///|
+pub extend Migration with Eq::{not_equal, equal}
 
 ///|
 pub fn Migration::new(
@@ -74,6 +104,12 @@ pub(all) enum ErrorCode {
   Conflict
   NonReversible
 } derive(Debug, Eq)
+
+///|
+pub extend ErrorCode with Debug::{to_repr}
+
+///|
+pub extend ErrorCode with Eq::{not_equal, equal}
 
 ///|
 /// Stable machine-readable label for an execution error category.
@@ -99,11 +135,23 @@ pub(all) struct MigrationError {
 } derive(Debug, Eq)
 
 ///|
+pub extend MigrationError with Debug::{to_repr}
+
+///|
+pub extend MigrationError with Eq::{not_equal, equal}
+
+///|
 pub(all) struct JournalEntry {
   operation_index : Int
   summary : String
   inverse : Operation?
 } derive(Debug, Eq)
+
+///|
+pub extend JournalEntry with Debug::{to_repr}
+
+///|
+pub extend JournalEntry with Eq::{not_equal, equal}
 
 ///|
 pub(all) struct MigrationResult {
@@ -113,11 +161,23 @@ pub(all) struct MigrationResult {
 } derive(Debug, Eq)
 
 ///|
+pub extend MigrationResult with Debug::{to_repr}
+
+///|
+pub extend MigrationResult with Eq::{not_equal, equal}
+
+///|
 /// Static diagnostics produced before a migration touches a document.
 pub(all) struct PreflightReport {
   errors : Array[String]
   warnings : Array[String]
 } derive(Debug, Eq)
+
+///|
+pub extend PreflightReport with Debug::{to_repr}
+
+///|
+pub extend PreflightReport with Eq::{not_equal, equal}
 
 ///|
 pub fn PreflightReport::is_valid(self : PreflightReport) -> Bool {
